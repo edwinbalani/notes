@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Copyright 2018 Edwin Bahrami Balani.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# Dependencies: pandoc, zathura, inotifywait (available in inotify-tools)
+
+if [ "x$#" = "x0" ]; then
+    echo "Usage: $0 {-n} [Markdown file] {pandoc arguments}" >&2
+    exit 1
+fi
+
+no_edit=0
+if [ "$1" = "-n" ]; then
+    no_edit=1
+    shift
+fi
+
+markdown_file="$1"
+
+shift
+
+if [ ! -f "$markdown_file" ]; then
+    printf '---\ntitle: New note\nauthor: %s\ndate: %s' "$(whoami)" "$(date +%d/%m/%Y)" > "$markdown_file"
+fi
+
+pdfname="$(dirname "$markdown_file")/$(basename -s.md "$markdown_file").pdf"
+
+pandoc -o "$pdfname" -Vpapersize:a4 \
+    -Vgeometry:'margin=1in' -Vfontfamily:'tgpagella' "$markdown_file" "${@}"
+pandoc_code=$?
+
+if [ $no_edit = 1 ]; then
+    exit $pandoc_code
+fi
+
+zathura "$pdfname" &
+{
+    while true; do
+        inotifywait -q -e close_write "$markdown_file"
+        pandoc -o "$pdfname" -Vpapersize:a4 \
+            -Vgeometry:'margin=1in' -Vfontfamily:'tgpagella' "$markdown_file" "${@}"
+    done
+} &
+
+vim "$markdown_file"
+
+kill %+ %-
