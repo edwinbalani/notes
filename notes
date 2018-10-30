@@ -33,7 +33,7 @@ markdown_file="$1"
 shift
 
 if [ ! -f "$markdown_file" ]; then
-    printf '---\ntitle: New note\nauthor: %s\ndate: %s' "$(whoami)" "$(date +%d/%m/%Y)" > "$markdown_file"
+    printf -- '---\ntitle: New note\nauthor: %s\ndate: %s\n---\n' "$(whoami)" "$(date +%d/%m/%Y)" > "$markdown_file"
 fi
 
 pdfname="$(dirname "$markdown_file")/$(basename -s.md "$markdown_file").pdf"
